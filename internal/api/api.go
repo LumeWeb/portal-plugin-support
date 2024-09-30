@@ -2,7 +2,6 @@ package api
 
 import (
 	"github.com/gorilla/mux"
-	"github.com/rs/cors"
 	"github.com/samber/lo"
 	"go.lumeweb.com/httputil"
 	"go.lumeweb.com/portal-plugin-support/internal"
@@ -43,16 +42,8 @@ func (a *API) Subdomain() string {
 
 func (a *API) Configure(router *mux.Router) error {
 	pluginCfg := a.config.GetAPI(internal.PLUGIN_NAME).(*pluginConfig.APIConfig)
-	corsOpts := cors.Options{
-		AllowOriginFunc: func(origin string) bool {
-			return true
-		},
-		AllowedMethods:   []string{"GET", "POST", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Authorization", "Content-Type"},
-		AllowCredentials: true,
-	}
 
-	corsHandler := cors.New(corsOpts)
+	corsHandler := middleware.CorsMiddleware(nil)
 	authMw := middleware.AuthMiddleware(middleware.AuthMiddlewareOptions{
 		Context: a.ctx,
 		Purpose: core.JWTPurposeLogin,
@@ -101,7 +92,7 @@ func (a *API) Configure(router *mux.Router) error {
 
 	a.oauthServer = srv
 
-	router.Use(corsHandler.Handler)
+	router.Use(corsHandler)
 
 	router.HandleFunc("/api/account/support/oauth/authorize", a.authorize).Methods("GET", "OPTIONS").Use(authMw)
 	router.HandleFunc("/api/account/support/oauth/token", a.token).Methods("POST", "OPTIONS")
