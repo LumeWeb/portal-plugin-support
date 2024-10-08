@@ -13,10 +13,10 @@ var _ config.APIConfig = (*APIConfig)(nil)
 var _ config.Validator = (*APIConfig)(nil)
 
 type APIConfig struct {
-	ClientID         string `mapstructure:"client_id"`
-	ClientSecret     string `mapstructure:"client_secret"`
-	SupportPortalURL string `mapstructure:"support_portal_url"`
-	MailboxID        string `mapstructure:"mailbox_id"`
+	ClientID         string `config:"client_id"`
+	ClientSecret     string `config:"client_secret"`
+	SupportPortalURL string `config:"support_portal_url"`
+	MailboxID        string `config:"mailbox_id"`
 }
 
 func (a APIConfig) Defaults() map[string]any {
