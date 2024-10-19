@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/samber/lo"
 	"go.lumeweb.com/httputil"
@@ -10,10 +11,12 @@ import (
 	"go.lumeweb.com/portal/config"
 	"go.lumeweb.com/portal/core"
 	"go.lumeweb.com/portal/middleware"
+	"gopkg.in/oauth2.v3"
 	"gopkg.in/oauth2.v3/manage"
 	"gopkg.in/oauth2.v3/models"
 	"gopkg.in/oauth2.v3/server"
 	"gopkg.in/oauth2.v3/store"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -40,63 +43,44 @@ func (a *API) Subdomain() string {
 	return dashApi.Subdomain()
 }
 
-func (a *API) Configure(router *mux.Router) error {
+func (a *API) Configure(router *mux.Router, accessSvc core.AccessService) error {
 	pluginCfg := a.config.GetAPI(internal.PLUGIN_NAME).(*pluginConfig.APIConfig)
 
+	// Middleware setup
 	corsHandler := middleware.CorsMiddleware(nil)
 	authMw := middleware.AuthMiddleware(middleware.AuthMiddlewareOptions{
 		Context: a.ctx,
 		Purpose: core.JWTPurposeLogin,
 	})
 
-	manager := manage.NewDefaultManager()
-	manager.MustTokenStorage(store.NewMemoryTokenStore())
+	// OAuth manager setup
+	manager := setupOAuthManager(pluginCfg)
+	a.oauthServer = setupOAuthServer(manager)
 
-	clientStore := store.NewClientStore()
-	parsedURL, err := url.Parse(pluginCfg.SupportPortalURL)
-	if err != nil {
-		return err
+	// Define routes
+	routes := []struct {
+		path    string
+		method  string
+		handler http.HandlerFunc
+		mws     []mux.MiddlewareFunc
+		access  string
+	}{
+		{"/api/account/support/oauth/authorize", "GET", a.authorize, []mux.MiddlewareFunc{authMw}, core.ACCESS_USER_ROLE},
+		{"/api/account/support/oauth/token", "POST", a.token, nil, ""},
+		{"/api/account/support/oauth/userinfo", "GET", a.userInfo, nil, ""},
+		{"/api/account/support/oauth/userinfo", "POST", a.userInfo, nil, ""},
 	}
-	err = clientStore.Set(pluginCfg.ClientID, &models.Client{
-		ID:     pluginCfg.ClientID,
-		Secret: pluginCfg.ClientSecret,
-		Domain: parsedURL.Host,
-	})
-	if err != nil {
-		return err
-	}
 
-	manager.MapClientStorage(clientStore)
-
-	srv := server.NewDefaultServer(manager)
-	srv.SetAllowGetAccessRequest(true)
-
-	srv.SetUserAuthorizationHandler(func(w http.ResponseWriter, r *http.Request) (userID string, err error) {
-		user, err := middleware.GetUserFromContext(r.Context())
-		if err != nil {
-			return "", err
-		}
-		return strconv.FormatInt(int64(user), 10), nil
-	})
-
-	srv.SetClientScopeHandler(func(_, scope string) (allowed bool, err error) {
-		allowedScopes := []string{"openid", "profile", "email"}
-		for _, scope := range strings.Fields(scope) {
-			if !lo.Contains(allowedScopes, scope) {
-				return false, nil
-			}
-		}
-
-		return true, nil
-	})
-
-	a.oauthServer = srv
-
+	// Register routes
 	router.Use(corsHandler)
+	for _, route := range routes {
+		r := router.HandleFunc(route.path, route.handler).Methods(route.method, "OPTIONS")
+		r.Use(route.mws...)
 
-	router.HandleFunc("/api/account/support/oauth/authorize", a.authorize).Methods("GET", "OPTIONS").Use(authMw)
-	router.HandleFunc("/api/account/support/oauth/token", a.token).Methods("POST", "OPTIONS")
-	router.HandleFunc("/api/account/support/oauth/userinfo", a.userInfo).Methods("GET", "POST", "OPTIONS")
+		if err := accessSvc.RegisterRoute(a.Subdomain(), route.path, route.method, route.access); err != nil {
+			return fmt.Errorf("failed to register route %s %s: %w", route.method, route.path, err)
+		}
+	}
 
 	return nil
 }
@@ -188,4 +172,51 @@ func NewAPI() (*API, []core.ContextBuilderOption, error) {
 			return nil
 		}),
 	), nil
+}
+
+func setupOAuthManager(pluginCfg *pluginConfig.APIConfig) *manage.Manager {
+	manager := manage.NewDefaultManager()
+	manager.MustTokenStorage(store.NewMemoryTokenStore())
+
+	clientStore := store.NewClientStore()
+	parsedURL, err := url.Parse(pluginCfg.SupportPortalURL)
+	if err != nil {
+		log.Fatalf("Failed to parse SupportPortalURL: %v", err)
+	}
+	err = clientStore.Set(pluginCfg.ClientID, &models.Client{
+		ID:     pluginCfg.ClientID,
+		Secret: pluginCfg.ClientSecret,
+		Domain: parsedURL.Host,
+	})
+	if err != nil {
+		log.Fatalf("Failed to set client: %v", err)
+	}
+
+	manager.MapClientStorage(clientStore)
+	return manager
+}
+
+func setupOAuthServer(manager oauth2.Manager) *server.Server {
+	srv := server.NewDefaultServer(manager)
+	srv.SetAllowGetAccessRequest(true)
+
+	srv.SetUserAuthorizationHandler(func(w http.ResponseWriter, r *http.Request) (userID string, err error) {
+		user, err := middleware.GetUserFromContext(r.Context())
+		if err != nil {
+			return "", err
+		}
+		return strconv.FormatInt(int64(user), 10), nil
+	})
+
+	srv.SetClientScopeHandler(func(_, scope string) (allowed bool, err error) {
+		allowedScopes := []string{"openid", "profile", "email"}
+		for _, s := range strings.Fields(scope) {
+			if !lo.Contains(allowedScopes, s) {
+				return false, nil
+			}
+		}
+		return true, nil
+	})
+
+	return srv
 }
