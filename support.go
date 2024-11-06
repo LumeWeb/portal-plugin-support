@@ -1,6 +1,7 @@
 package support
 
 import (
+	"go.lumeweb.com/portal-plugin-support/build"
 	"go.lumeweb.com/portal-plugin-support/internal"
 	"go.lumeweb.com/portal-plugin-support/internal/api"
 	pluginConfig "go.lumeweb.com/portal-plugin-support/internal/config"
@@ -9,7 +10,8 @@ import (
 
 func init() {
 	core.RegisterPlugin(core.PluginInfo{
-		ID: internal.PLUGIN_NAME,
+		ID:      internal.PLUGIN_NAME,
+		Version: build.GetInfo(),
 		Meta: func(ctx core.Context, builder core.PortalMetaBuilder) error {
 			pluginCfg := ctx.Config().GetPlugin(internal.PLUGIN_NAME).API.(*pluginConfig.APIConfig)
 			builder.AddFeatureFlag("support", true)
