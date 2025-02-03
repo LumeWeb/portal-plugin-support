@@ -7,7 +7,7 @@ toolchain go1.23.2
 require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
-	github.com/samber/lo v1.47.0
+	github.com/samber/lo v1.49.1
 	go.lumeweb.com/httputil v0.0.0-20240907105629-dbffb601f2ab
 	go.lumeweb.com/portal v0.3.2
 	gopkg.in/oauth2.v3 v3.12.0
@@ -87,7 +87,7 @@ require (
 	golang.org/x/exp v0.0.0-20240707233637-46b078467d37 // indirect
 	golang.org/x/net v0.30.0 // indirect
 	golang.org/x/sys v0.26.0 // indirect
-	golang.org/x/text v0.19.0 // indirect
+	golang.org/x/text v0.21.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240827150818-7e3bb234dfed // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240903143218-8af14fe29dc1 // indirect
 	google.golang.org/grpc v1.67.0 // indirect
