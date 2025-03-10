@@ -8,7 +8,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
 	github.com/samber/lo v1.47.0
-	go.lumeweb.com/httputil v0.0.0-20240907105629-dbffb601f2ab
+	go.lumeweb.com/httputil v0.1.0
 	go.lumeweb.com/portal v0.3.2
 	gopkg.in/oauth2.v3 v3.12.0
 )
