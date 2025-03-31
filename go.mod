@@ -2,13 +2,13 @@ module go.lumeweb.com/portal-plugin-support
 
 go 1.23.0
 
-toolchain go1.23.2
+toolchain go1.24.1
 
 require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
 	github.com/samber/lo v1.47.0
-	go.lumeweb.com/httputil v0.0.0-20240907105629-dbffb601f2ab
+	go.lumeweb.com/httputil v0.3.4
 	go.lumeweb.com/portal v0.3.2
 	gopkg.in/oauth2.v3 v3.12.0
 )
@@ -16,6 +16,7 @@ require (
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/AfterShip/email-verifier v1.4.1 // indirect
+	github.com/Oudwins/zog v0.18.4 // indirect
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da // indirect
 	github.com/aws/aws-sdk-go-v2 v1.32.3 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.6 // indirect
